@@ -41,11 +41,37 @@ internal static class OptionsMenuPatch
         }
         if (quitButton != null)
         {
+            const string locKey = "die_instantly";
+
             var dupeButton = UE.Object.Instantiate(quitButton, quitButton.transform.parent);
+            var origComponent = dupeButton.GetComponent<UIButton>();
+            var newComponent = dupeButton.AddComponent<DelegateButton>();
+            newComponent.Init(origComponent, () =>
+            {
+                DieInstantlyPlugin.Log($"DIE!!!!!!!");
+            });
+            var xlat = newComponent.buttonText.GetComponent<LocTextTMP>();
+            xlat.locId = locKey;
+            UE.Object.Destroy(origComponent);
+
             var newGrid = new UIButton[__instance.grid.Length + 1];
             __instance.grid.CopyTo(newGrid, 0);
-            newGrid[__instance.grid.Length] = dupeButton.GetComponent<UIButton>();
+            newGrid[__instance.grid.Length] = newComponent;
             __instance.grid = newGrid;
+
+            var newCtxt = new string[__instance.ctxt.Length + 1];
+            __instance.ctxt.CopyTo(newCtxt, 0);
+            newCtxt[__instance.ctxt.Length] = "";
+            __instance.ctxt = newCtxt;
+
+            var data = new DialogueManager.SpeechData();
+            var blk = new DialogueManager.SpeechData.SpeechBlock();
+            blk.lines = new string[]{ "DIE INSTANTLY" };
+            for (var i = 0; i < data.block.Length; i++)
+            {
+                data.block[i] = blk;
+            }
+            DialogueManager.instance.speechChains[locKey] = data;
         }
     }
 }
