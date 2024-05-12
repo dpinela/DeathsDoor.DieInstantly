@@ -46,10 +46,7 @@ internal static class OptionsMenuPatch
             var dupeButton = UE.Object.Instantiate(quitButton, quitButton.transform.parent);
             var origComponent = dupeButton.GetComponent<UIButton>();
             var newComponent = dupeButton.AddComponent<DelegateButton>();
-            newComponent.Init(origComponent, () =>
-            {
-                DieInstantlyPlugin.Log($"DIE!!!!!!!");
-            });
+            newComponent.Init(origComponent, KillPlayer);
             var xlat = newComponent.buttonText.GetComponent<LocTextTMP>();
             xlat.locId = locKey;
             UE.Object.Destroy(origComponent);
@@ -72,6 +69,24 @@ internal static class OptionsMenuPatch
                 data.block[i] = blk;
             }
             DialogueManager.instance.speechChains[locKey] = data;
+        }
+    }
+
+    private static void KillPlayer()
+    {
+        UIMenuPauseController.instance.UnPause();
+        var dp = PlayerGlobal.instance.GetComponent<DamageablePlayer>();
+        
+        if (dp != null)
+        {
+            DieInstantlyPlugin.Log("DIE!!!!");
+            dp.currentDamageType = Damageable.DamageType.Drown;
+            dp.SetHealth(0);
+            dp.handleNoHealth(
+                dp.gameObject.transform.position,
+                new(0, 0, 0),
+                dp.gameObject.transform.position
+            );
         }
     }
 }
