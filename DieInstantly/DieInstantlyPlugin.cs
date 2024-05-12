@@ -83,14 +83,17 @@ internal class DieInstantlyPlugin : Bep.BaseUnityPlugin
 
     private static bool nextDeathIsInstant = false;
 
-    [HL.HarmonyPatch(typeof(DeathText), nameof(DeathText.Start))]
+    // DeathText objects get reused sometimes, so Start does not get
+    // reliably called every time. OnEnable would work, but DeathText
+    // doesn't have that method so we can't hook it.
+    [HL.HarmonyPatch(typeof(DeathText), nameof(DeathText.FixedUpdate))]
     [HL.HarmonyPostfix]
     private static void ISaidInstantly(DeathText __instance)
     {
         if (nextDeathIsInstant)
         {
             nextDeathIsInstant = false;
-            __instance.delayDeathTime = 0;
+            __instance.timer = __instance.delayDeathTime;
             __instance.blackWaitTimer = 0;
         }
     }
