@@ -72,13 +72,10 @@ internal class DieInstantlyPlugin : Bep.BaseUnityPlugin
         {
             var playerPos = dp.gameObject.transform.position;
             var srcPos = new UE.Vector3(playerPos.x, playerPos.y, playerPos.z + 1);
-            dp.SetInvul(0);
-            dp.SetHealth(1);
-            // This method ignores its damage parameters and always deals
-            // 1 damage anyway.
-            // Use the Drown damage type to disable spawning blood.
-            dp.ReceiveDamage(-666, 0, srcPos, playerPos, Damageable.DamageType.Drown);
-            // ReceiveDamage doesn't call this for the Drown damage type.
+            dp.SetHealth(0);
+            // Avoid spawning blood.
+            dp.currentDamageType = Damageable.DamageType.Drown;
+            dp.handleNoHealth(playerPos, new(0, 0, -1), srcPos);
             dp.fallOver(srcPos, 1, true);
             nextDeathIsInstant = true;
         }
