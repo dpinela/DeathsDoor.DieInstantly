@@ -12,27 +12,18 @@ internal class DieInstantlyPlugin : Bep.BaseUnityPlugin
     public void Start()
     {
         Instance = this;
-        new HL.Harmony("deathsdoor.dieinstantly").PatchAll();
+        new HL.Harmony("deathsdoor.dieinstantly").PatchAll(typeof(DieInstantlyPlugin));
     }
 
-    public static void Log(string s)
-    {
-        Instance!.Logger.LogInfo(s);
-    }
-}
-
-[HL.HarmonyPatch(typeof(UIMenuOptions), nameof(UIMenuOptions.Start))]
-internal static class OptionsMenuPatch
-{
-    private static void Postfix(UIMenuOptions __instance)
+    [HL.HarmonyPatch(typeof(UIMenuOptions), nameof(UIMenuOptions.Start))]
+    [HL.HarmonyPostfix]
+    private static void AddButtonToMenu(UIMenuOptions __instance)
     {
         UE.GameObject? quitButton = null;
         foreach (var btn in __instance.grid)
         {
-            DieInstantlyPlugin.Log($"found button: {btn.buttonText.text} @ ({btn.gameObject.transform.position.x}, {btn.gameObject.transform.position.y})");
             if (btn is UIAction a)
             {
-                DieInstantlyPlugin.Log($"found action: {a}");
                 if (a.actionId == "ExitSession")
                 {
                     quitButton = a.gameObject;
@@ -79,14 +70,31 @@ internal static class OptionsMenuPatch
         
         if (dp != null)
         {
-            DieInstantlyPlugin.Log("DIE!!!!");
-            dp.currentDamageType = Damageable.DamageType.Drown;
-            dp.SetHealth(0);
-            dp.handleNoHealth(
-                dp.gameObject.transform.position,
-                new(0, 0, 0),
-                dp.gameObject.transform.position
-            );
+            var playerPos = dp.gameObject.transform.position;
+            var srcPos = new UE.Vector3(playerPos.x, playerPos.y, playerPos.z + 1);
+            dp.SetInvul(0);
+            dp.SetHealth(1);
+            // This method ignores its damage parameters and always deals
+            // 1 damage anyway.
+            // Use the Drown damage type to disable spawning blood.
+            dp.ReceiveDamage(-666, 0, srcPos, playerPos, Damageable.DamageType.Drown);
+            // ReceiveDamage doesn't call this for the Drown damage type.
+            dp.fallOver(srcPos, 1, true);
+            nextDeathIsInstant = true;
+        }
+    }
+
+    private static bool nextDeathIsInstant = false;
+
+    [HL.HarmonyPatch(typeof(DeathText), nameof(DeathText.Start))]
+    [HL.HarmonyPostfix]
+    private static void ISaidInstantly(DeathText __instance)
+    {
+        if (nextDeathIsInstant)
+        {
+            nextDeathIsInstant = false;
+            __instance.delayDeathTime = 0;
+            __instance.blackWaitTimer = 0;
         }
     }
 }
